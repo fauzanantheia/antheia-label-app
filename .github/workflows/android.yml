@@ -12,6 +12,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Put the uploaded files in place
+        run: |
+          # Files may be uploaded all in the main folder; this sorts them into the folders the app needs.
+          mkdir -p www/vendor www/icons
+          for f in index.html firebase-config.js manifest.webmanifest; do
+            if [ -f "$f" ]; then mv "$f" www/; fi
+          done
+          for f in three.min.js OrbitControls.js capacitor.js capacitor-filesystem.js capacitor-share.js firebase-app-compat.js firebase-auth-compat.js firebase-firestore-compat.js; do
+            if [ -f "$f" ]; then mv "$f" www/vendor/; fi
+          done
+          for f in icon-192.png icon-512.png maskable-512.png; do
+            if [ -f "$f" ]; then mv "$f" www/icons/; fi
+          done
+          if [ ! -f www/index.html ]; then echo "index.html is missing"; exit 1; fi
+          ls -R www
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -29,14 +45,60 @@ jobs:
       - name: Create the Android project
         run: |
           npx cap add android
-          bash scripts/android-setup.sh
+          RES=android/app/src/main/res
+          if [ -d resources/android/res ]; then
+            cp -r resources/android/res/. "$RES/"
+          else
+            # app icon and splash screen from the files in the main folder (Android scales them for each screen)
+            for f in ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png; do
+              if [ -f "$f" ]; then rm -f "$RES"/mipmap-*/"$f"; cp "$f" "$RES/mipmap-xxxhdpi/$f"; fi
+            done
+            if [ -f ic_launcher_background.xml ]; then cp ic_launcher_background.xml "$RES/values/ic_launcher_background.xml"; fi
+            if [ -f splash.png ]; then rm -f "$RES"/drawable*/splash.png; cp splash.png "$RES/drawable/splash.png"; fi
+          fi
+          NAME=$(node -p "require('./package.json').version")
+          sed -i "s/versionCode 1$/versionCode ${GITHUB_RUN_NUMBER}/; s/versionName \"1.0\"/versionName \"${NAME}\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName" android/app/build.gradle
           npx cap sync android
 
       - name: Build the APK
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: bash scripts/android-build.sh
+        run: |
+          mkdir -p dist-apk
+          NAME=$(node -p "require('./package.json').version")
+          cd android
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:KEYSTORE_PASSWORD > app/release.jks
+            cat >> app/build.gradle <<'EOF'
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("release.jks")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias "antheia"
+                      keyPassword System.getenv("KEYSTORE_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
+            ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk "../dist-apk/antheia-label-${NAME}.apk"
+            rm -f app/release.jks
+          else
+            echo "No signing secrets: building a debug APK."
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk "../dist-apk/antheia-label-${NAME}-debug.apk"
+          fi
+          ls -la ../dist-apk
 
       - uses: actions/upload-artifact@v4
         with:

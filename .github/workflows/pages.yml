@@ -1,0 +1,47 @@
+name: Publish website
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Put the uploaded files in place
+        run: |
+          mkdir -p www/vendor www/icons
+          for f in index.html firebase-config.js manifest.webmanifest; do
+            if [ -f "$f" ]; then mv "$f" www/; fi
+          done
+          for f in three.min.js OrbitControls.js capacitor.js capacitor-filesystem.js capacitor-share.js firebase-app-compat.js firebase-auth-compat.js firebase-firestore-compat.js; do
+            if [ -f "$f" ]; then mv "$f" www/vendor/; fi
+          done
+          for f in icon-192.png icon-512.png maskable-512.png; do
+            if [ -f "$f" ]; then mv "$f" www/icons/; fi
+          done
+          if [ ! -f www/index.html ]; then echo "index.html is missing"; exit 1; fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
