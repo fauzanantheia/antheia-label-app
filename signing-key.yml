@@ -1,0 +1,33 @@
+name: Create signing key (run once)
+
+# Makes the key that signs the APK, encrypted with your KEYSTORE_PASSWORD secret.
+# Set the KEYSTORE_PASSWORD secret first (README, step 6).
+
+on: workflow_dispatch
+
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Make the key
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ ${#KEYSTORE_PASSWORD} -lt 8 ]; then echo "Add a KEYSTORE_PASSWORD secret of at least 8 characters first."; exit 1; fi
+          keytool -genkeypair -keystore release.jks -storetype PKCS12 -alias antheia -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" -dname "CN=The Antheia Label, O=The Antheia Project, C=ID"
+          mkdir out
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:KEYSTORE_PASSWORD -in release.jks | base64 -w0 > out/KEYSTORE_BASE64.txt
+          rm release.jks
+          echo "Done. Download the signing-key artifact and copy KEYSTORE_BASE64.txt into a secret named KEYSTORE_BASE64."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signing-key
+          path: out/KEYSTORE_BASE64.txt
+          retention-days: 1
