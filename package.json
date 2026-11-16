@@ -1,0 +1,18 @@
+{
+  "name": "antheia-label-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Antheia Label Generator: packaging and apparel mockups, as a website and an Android app",
+  "scripts": {
+    "android": "cap add android && bash scripts/android-setup.sh && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.3",
+    "@capacitor/core": "6.2.3",
+    "@capacitor/filesystem": "6.0.4",
+    "@capacitor/share": "6.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.3"
+  }
+}

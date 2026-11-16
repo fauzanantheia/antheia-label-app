@@ -1,0 +1,11 @@
+{
+  "appId": "com.antheia.labelgenerator",
+  "appName": "Antheia Label",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#f1e8dc"
+  }
+}

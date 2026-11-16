@@ -1,0 +1,9 @@
+rules_version = '2';
+// Each signed-in person can read and write only their own designs, stored under data/users/<their user id>/.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /data/users/{uid}/{rest=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
