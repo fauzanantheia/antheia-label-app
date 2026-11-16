@@ -4,10 +4,11 @@
    These values are not secret; your data is protected by the Firestore rules in firestore.rules.
    While the values below still say PASTE..., the app works without accounts (designs stay on the device). */
 window.FIREBASE_CONFIG = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+ apiKey: "AIzaSyDjMFDj4JBrF5hwTkvogkrfqCDwTT7lURI",
+  authDomain: "antheia-generator.firebaseapp.com",
+  projectId: "antheia-generator",
+  storageBucket: "antheia-generator.firebasestorage.app",
+  messagingSenderId: "1035024320812",
+  appId: "1:1035024320812:web:c5ab57ba7710cf7d9f4489",
+  measurementId: "G-QQMCETDJ9C"
 };
